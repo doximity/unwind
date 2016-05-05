@@ -1,5 +1,5 @@
-require "unwind/version"
-require 'unwind/canonical_link'
+require_relative 'unwind/version'
+require_relative 'unwind/canonical_link'
 require 'addressable/uri'
 require 'nokogiri'
 require 'faraday'
