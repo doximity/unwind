@@ -63,7 +63,7 @@ http_interactions:
   recorded_at: Wed, 07 Mar 2012 17:19:47 GMT
 - request:
     method: get
-    uri: http://www.amazon.com/Microsoft-Introduction-Reference-Instructions-Shortcuts/dp/193622013X%3FSubscriptionId=05K53E00DQPJE1TBF0R2&tag=accessleedsco5-20&linkCode=xm2&camp=2025&creative=165953&creativeASIN=193622013X%2016UTC422February22132923656214th2Tuesday2012?utm_source=twitterfeed&utm_medium=twitter
+    uri: http://www.amazon.com/Microsoft-Introduction-Reference-Instructions-Shortcuts/dp/193622013X%3FSubscriptionId=05K53E00DQPJE1TBF0R2&tag=accessleedsco5-20&linkCode=xm2&camp=2025&creative=165953&creativeASIN=193622013X%2016UTC422February22132923656214th2Tuesday2012?utm_medium=twitter&utm_source=twitterfeed
     body:
       encoding: US-ASCII
       string: ''
