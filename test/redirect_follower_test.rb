@@ -55,7 +55,7 @@ describe Unwind::RedirectFollower do
   end
 
   it 'should handle the lame amazon spaces' do
-    VCR.use_cassette('amazon', :match_requests_on => [:method]) do
+    VCR.use_cassette('amazon') do
       follower = Unwind::RedirectFollower.resolve('http://amzn.to/xrHQWS')
       assert follower.redirected?
     end

@@ -1,4 +1,5 @@
-require "unwind/version"
+require_relative 'unwind/version'
+require_relative 'unwind/canonical_link'
 require 'addressable/uri'
 require 'nokogiri'
 require 'faraday'
@@ -16,10 +17,10 @@ module Unwind
     def initialize(original_url, limit=5)
      @original_url, @redirect_limit = original_url, limit
      @redirects = []
-     
+
     end
 
-    def redirected? 
+    def redirected?
       !(self.final_url == self.original_url)
     end
 
@@ -75,7 +76,7 @@ module Unwind
 
     def handle_final_response(current_url, response)
       current_url = current_url.dup.to_s
-      if response.status == 200 &&  canonical = canonical_link?(response)
+      if response.status == 200 && (canonical = canonical_link(response))
         @redirects << current_url
         @final_url = canonical.to_s
       else
@@ -98,7 +99,7 @@ module Unwind
         redirect_uri.relative? ? Addressable::URI.join(response.env[:url].to_s, response['location']) : redirect_uri
       end
     end
-    
+
     def meta_refresh?(response)
       if response.status == 200
         body_match = response.body.match(/<meta http-equiv=\"refresh\" content=\"0;\s*url='?(.*[^'$])'?\">/i)
@@ -106,17 +107,14 @@ module Unwind
       end
     end
 
-    def canonical_link?(response)
+    def canonical_link(response)
       doc = Nokogiri::HTML(response.body)
 
-      if canonical = doc.at('link[rel=canonical]')
-        href = Addressable::URI.parse(canonical["href"])
-        return unless href
-        return Addressable::URI.join(response.env[:url].to_s, href) if href.relative?
-        return href
+      if (raw_canonical = doc.at('link[rel=canonical]'))
+        Unwind::CanonicalLink.new(response.env[:url].to_s, raw_canonical["href"]).resolve
+      else
+        nil
       end
-
-      false
     end
 
     def apply_cookie(response, headers)
@@ -138,9 +136,9 @@ module Unwind
   #borrowed (stolen) from HTTParty with minor updates
   #to handle all cookies existing in a single string
   class CookieHash < Hash
-    
+
     CLIENT_COOKIES = %w{path expires domain path secure httponly}
-    
+
     def add_cookies(value)
       case value
       when Hash
