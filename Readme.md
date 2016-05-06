@@ -1,4 +1,4 @@
-[![Circle CI](https://ci.dox.pub/gh/doximity/unwind.svg?style=svg)](https://ci.dox.pub/gh/doximity/unwind)
+[![Circle CI](https://ci.dox.pub/gh/doximity/unwind.svg?style=svg&circle-token=0d91aabaa20cdcc8310adb8c6cfcfe8be71f51f7)](https://ci.dox.pub/gh/doximity/unwind)
 
 # Description
 Enables following a series of redirects (shortened urls)
