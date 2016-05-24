@@ -36,6 +36,8 @@ module Unwind
       #adding this header because we really only care about resolving the url
       headers = (options || {}).merge({"accept-encoding" => "none"})
 
+      current_url = current_url.to_s.gsub(' ', '%20')
+
       begin
         response = Faraday.get(current_url, nil, headers)
         yield response if block_given?
@@ -103,7 +105,7 @@ module Unwind
     def meta_refresh?(response)
       if response.status == 200
         body_match = response.body.match(/<meta http-equiv=\"refresh\" content=\"0;\s*url='?(.*[^'$])'?\">/i)
-        Addressable::URI.parse(body_match[1]) if body_match
+        Unwind::CanonicalLink.new(response.env[:url].to_s, body_match[1]).resolve if body_match
       end
     end
 
