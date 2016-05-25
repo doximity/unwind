@@ -137,6 +137,26 @@ describe Unwind::RedirectFollower do
     assert_equal "http://www.example.com/", follower.final_url
   end
 
+  it 'should handle a meta-refresh with relative url' do
+    body = '<meta http-equiv="refresh" content="0; url=/relative">'
+    FakeWeb.register_uri :get, 'http://foo.com', status: 200, body: body
+    FakeWeb.register_uri :get, 'http://foo.com/relative', status: 200, body: 'ok'
+
+    follower = Unwind::RedirectFollower.resolve('http://foo.com')
+    assert follower.redirected?
+    assert_equal "http://foo.com/relative", follower.final_url
+  end
+
+  it 'should handle URLs with spaces' do
+    body = '<meta http-equiv="refresh" content="0; url=/relative with spaces">'
+    FakeWeb.register_uri :get, 'http://foo.com/path%20with%20spaces', status: 200, body: body
+    FakeWeb.register_uri :get, 'http://foo.com/relative%20with%20spaces', status: 200, body: 'ok'
+
+    follower = Unwind::RedirectFollower.resolve('http://foo.com/path with spaces')
+    assert follower.redirected?
+    assert_equal "http://foo.com/relative%20with%20spaces", follower.final_url
+  end
+
   describe 'handling 404s' do
     it "should set not_found?" do
       FakeWeb.register_uri :get, 'http://nope.com', status: 404
