@@ -23,6 +23,10 @@ module Unwind
     def build_from_relative(uri)
       base_uri = Addressable::URI.parse(@base_url)
 
+      if missing_scheme?(uri, base_uri.host)
+        return Addressable::URI.parse("#{base_uri.scheme}:#{uri.to_s}")
+      end
+
       if invalid_relative_uri?(uri, base_uri.host)
         path = uri.to_s.gsub(base_uri.host, '')
       else
@@ -34,6 +38,10 @@ module Unwind
 
     def invalid_relative_uri?(uri, host)
       uri.to_s.match(host)
+    end
+
+    def missing_scheme?(uri, host)
+      !uri.host.nil?
     end
   end
 end
