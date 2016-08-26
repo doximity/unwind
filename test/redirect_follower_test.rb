@@ -82,8 +82,8 @@ describe Unwind::RedirectFollower do
     VCR.use_cassette('canonical url', :preserve_exact_body_bytes => true) do
       follower  = Unwind::RedirectFollower.resolve('http://www.scottw.com?test=abc')
       assert  follower.redirected?
-      assert 'http://www.scottw.com', follower.final_url
-      assert 'http://www.scottw?test=abc', follower.redirects[0]
+      assert_equal 'http://www.scottw.com', follower.final_url
+      assert_equal 'http://www.scottw.com?test=abc', follower.redirects[0]
     end
   end
 
@@ -95,6 +95,16 @@ describe Unwind::RedirectFollower do
     follower = Unwind::RedirectFollower.resolve('http://foo.com/')
 
     assert follower.final_url, "http://foo.com/index.html"
+  end
+
+  it 'should handle surrounding whitespace in canonical url' do
+    FakeWeb.register_uri :get, 'http://foo.com/', status: 200, body: """
+      <body><link rel='canonical' href=' https://foo.com/home '></body>
+    """
+
+    follower  = Unwind::RedirectFollower.resolve('http://foo.com/')
+
+    assert_equal 'https://foo.com/home', follower.final_url
   end
 
   it 'should raise TooManyRedirects' do

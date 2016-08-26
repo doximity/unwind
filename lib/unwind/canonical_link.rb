@@ -8,7 +8,7 @@ module Unwind
     end
 
     def resolve
-      uri = Addressable::URI.parse(@link)
+      uri = Addressable::URI.parse(@link.strip)
       return if uri.nil?
 
       if uri.relative?
