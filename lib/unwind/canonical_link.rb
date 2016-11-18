@@ -9,11 +9,6 @@ module Unwind
 
     def resolve
       begin
-        cleaned_link = @link.
-          strip.
-          gsub(/\p{C}/u, "").
-          sub(/^(%[A-Fa-f0-9]{2})+/, "").
-          strip
         uri = Addressable::URI.parse(cleaned_link)
         return if uri.nil?
 
@@ -51,6 +46,14 @@ module Unwind
 
     def missing_scheme?(uri, host)
       !uri.host.nil?
+    end
+
+    def cleaned_link
+      @cleaned_link ||= @link.
+        strip.
+        gsub(/\p{C}/u, "").
+        sub(/^(%[A-Fa-f0-9]{2})+/, "").
+        strip
     end
   end
 end
