@@ -49,6 +49,9 @@ module Unwind
     end
 
     def cleaned_link
+      # The following two regexes accomplish the following:
+      # 1. Removes invisible unicode characters in the url
+      # 2. Removes leading encoded characters (e.g. %01) before the url
       @cleaned_link ||= @link.
         strip.
         gsub(/\p{C}/u, "").
