@@ -3,41 +3,78 @@ require './lib/unwind/canonical_link'
 
 describe Unwind::CanonicalLink do
   describe ".resolve" do
-    let(:resolved_url) { 'http://oncology.jamanetwork.com/article.aspx?articleid=251' }
     let(:base_url) { 'http://oncology.jamanetwork.com/article.aspx?articleid=2517400' }
+    let(:resolved_url) { 'http://oncology.jamanetwork.com/article.aspx?articleid=251' }
 
-    describe "when canonical link is relative and invalid" do
+    subject { Unwind::CanonicalLink.new(base_url, link).resolve }
+
+    describe 'when canonical link is relative and invalid' do
       let(:link) { 'oncology.jamanetwork.com/article.aspx?articleid=251' }
-      subject { Unwind::CanonicalLink.new(base_url, link) }
-
-      it "builds a valid url" do
-        assert_equal subject.resolve.to_s, resolved_url
+      it "resolves to the correct url" do
+        assert_equal(subject.to_s, resolved_url)
       end
     end
 
     describe "when canonical link is relative and valid" do
       let(:link) { '/article.aspx?articleid=251' }
-      subject { Unwind::CanonicalLink.new(base_url, link) }
-
-      it "builds a valid url" do
-        assert_equal subject.resolve.to_s, resolved_url
+      it "resolves to the correct url" do
+        assert_equal(subject.to_s, resolved_url)
       end
     end
 
     describe "when canonical link is absolute" do
-      subject { Unwind::CanonicalLink.new(base_url, resolved_url) }
-
-      it "returns the link" do
-        assert_equal subject.resolve.to_s, resolved_url
+      let(:link) { resolved_url }
+      it "resolves to the correct url" do
+        assert_equal(subject.to_s, resolved_url)
       end
     end
 
     describe 'when canonical link is absolute without scheme' do
       let(:link) { '//oncology.jamanetwork.com/article.aspx?articleid=251' }
-      subject { Unwind::CanonicalLink.new(base_url, link) }
+      it "resolves to the correct url" do
+        assert_equal(subject.to_s, resolved_url)
+      end
+    end
 
-      it 'builds a valid url using base_url scheme' do
-        assert_equal subject.resolve.to_s, resolved_url
+    describe 'when canonical link contains spaces' do
+      let(:link) { " #{resolved_url}"}
+      it "resolves to the correct url" do
+        assert_equal(subject.to_s, resolved_url)
+      end
+    end
+
+    describe 'when canonical link contains leading invisible characters' do
+      let(:link) { "\x01#{resolved_url}" }
+      it "resolves to the correct url" do
+        assert_equal(subject.to_s, resolved_url)
+      end
+    end
+
+    describe 'when canonical link contains leading symbols' do
+      let(:link) { "%01#{resolved_url}" }
+      it "resolves to the correct url" do
+        assert_equal(subject.to_s, resolved_url)
+      end
+    end
+
+    describe 'when canonical link is empty' do
+      let(:link) { "" }
+      it "resolves to the last known url" do
+        assert_equal(subject.to_s, base_url)
+      end
+    end
+
+    describe 'when link is nil' do
+      let(:link) { nil }
+      it "resolves to the correct url" do
+        assert_nil(subject)
+      end
+    end
+
+    describe 'when link is completely unreadable' do
+      let(:link) { ":::::"}
+      it "resolves to the correct url" do
+        assert_nil(subject)
       end
     end
   end

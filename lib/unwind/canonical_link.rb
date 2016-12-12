@@ -8,13 +8,17 @@ module Unwind
     end
 
     def resolve
-      uri = Addressable::URI.parse(@link.strip)
-      return if uri.nil?
+      begin
+        uri = Addressable::URI.parse(cleaned_link)
+        return if uri.nil?
 
-      if uri.relative?
-        build_from_relative(uri)
-      else
-        uri
+        if uri.relative?
+          build_from_relative(uri)
+        else
+          uri
+        end
+      rescue Addressable::URI::InvalidURIError, NoMethodError
+        nil
       end
     end
 
@@ -42,6 +46,17 @@ module Unwind
 
     def missing_scheme?(uri, host)
       !uri.host.nil?
+    end
+
+    def cleaned_link
+      # The following two regexes accomplish the following:
+      # 1. Removes invisible unicode characters in the url
+      # 2. Removes leading encoded characters (e.g. %01) before the url
+      @cleaned_link ||= @link.
+        strip.
+        gsub(/\p{C}/u, "").
+        sub(/^(%[A-Fa-f0-9]{2})+/, "").
+        strip
     end
   end
 end
