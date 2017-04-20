@@ -3,6 +3,7 @@ require_relative 'unwind/canonical_link'
 require 'addressable/uri'
 require 'nokogiri'
 require 'faraday'
+require 'faraday-cookie_jar'
 
 module Unwind
 
@@ -17,7 +18,6 @@ module Unwind
     def initialize(original_url, limit=5)
      @original_url, @redirect_limit = original_url, limit
      @redirects = []
-
     end
 
     def redirected?
@@ -29,17 +29,17 @@ module Unwind
     end
 
     def resolve(current_url=nil, options={}, &block)
-
       ok_to_continue?
 
       current_url ||= self.original_url
+
       #adding this header because we really only care about resolving the url
       headers = (options || {}).merge({"accept-encoding" => "none"})
 
       current_url = current_url.to_s.gsub(' ', '%20')
 
       begin
-        response = Faraday.get(current_url, nil, headers)
+        response = conn.get(current_url, nil, headers)
         yield response if block_given?
       rescue Faraday::Error::TimeoutError => e
         raise Unwind::TimeoutError, $!
@@ -62,6 +62,13 @@ module Unwind
 
   private
 
+    def conn
+      @conn ||= Faraday.new do |builder|
+        builder.use :cookie_jar
+        builder.adapter Faraday.default_adapter
+      end
+    end
+
     def record_redirect(url)
       @redirects << url.to_s
       @redirect_limit -= 1
@@ -73,7 +80,7 @@ module Unwind
 
     def handle_redirect(uri_to_redirect, url, response, headers)
       record_redirect url
-      return uri_to_redirect.normalize, apply_cookie(response, headers)
+      return uri_to_redirect.normalize, headers
     end
 
     def handle_final_response(current_url, response)
@@ -118,58 +125,5 @@ module Unwind
         nil
       end
     end
-
-    def apply_cookie(response, headers)
-      if headers[:cookie] || response['set-cookie']
-        cookies = CookieHash.new
-
-        cookies.add_cookies(headers[:cookie]) if headers[:cookie]
-        cookies.add_cookies(response['set-cookie']) if response['set-cookie']
-
-        headers.merge(:cookie => cookies.to_cookie_string)
-      else
-        #todo: should we delete the cookie at this point if it exists?
-        headers
-      end
-    end
-
   end
-
-  #borrowed (stolen) from HTTParty with minor updates
-  #to handle all cookies existing in a single string
-  class CookieHash < Hash
-
-    CLIENT_COOKIES = %w{path expires domain path secure httponly}
-
-    def add_cookies(value)
-      case value
-      when Hash
-        merge!(value)
-      when String
-        value = value.gsub(/expires=[\w,\s\-\:]+;/i, '')
-        value = value.gsub(/httponly[\,\;]*/i, '')
-        value.split(/[;,]\s/).each do |cookie|
-          array = cookie.split('=')
-          self[array[0].strip.to_sym] = array[1]
-        end
-      else
-        raise "add_cookies only takes a Hash or a String"
-      end
-    end
-
-    def to_cookie_string
-      delete_if { |k, v| CLIENT_COOKIES.include?(k.to_s.downcase) }.collect { |k, v| "#{k}=#{v}" }.join("; ")
-    end
-
-    def self.to_cookie_string(*cookie_strings)
-      h = CookieHash.new
-      cookie_strings.each do |cs|
-        h.add_cookies(cs)
-      end
-
-      h.to_cookie_string
-    end
-  end
-
-
 end
