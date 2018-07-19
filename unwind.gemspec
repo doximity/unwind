@@ -30,5 +30,5 @@ Gem::Specification.new do |s|
   s.add_runtime_dependency "faraday", '~> 0.9.0'
   s.add_runtime_dependency "faraday-cookie_jar", '~> 0.0.6'
   s.add_runtime_dependency "nokogiri"
-  s.add_runtime_dependency "addressable", "~> 2.3.6"
+  s.add_runtime_dependency "addressable", "~> 2.5"
 end
