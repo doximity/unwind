@@ -1,10 +1,11 @@
 require 'minitest/autorun'
-require 'fakeweb'
+require 'webmock'
+require 'webmock/minitest'
 require 'vcr'
 require './lib/unwind'
 
 VCR.configure do |c|
-  c.hook_into :fakeweb
+  c.hook_into :webmock
   c.cassette_library_dir = 'vcr_cassettes'
   c.allow_http_connections_when_no_cassette = true
 end
@@ -88,9 +89,9 @@ describe Unwind::RedirectFollower do
   end
 
   it 'should handle relative canonical urls' do
-    FakeWeb.register_uri :get, 'http://foo.com/', status: 200, body: """
+    stub_request(:get, 'http://foo.com/').to_return(status: 200, body: """
       <body><link rel='canonical' href='/index.html'></body>
-    """
+    """)
 
     follower = Unwind::RedirectFollower.resolve('http://foo.com/')
 
@@ -98,9 +99,9 @@ describe Unwind::RedirectFollower do
   end
 
   it 'should handle surrounding whitespace in canonical url' do
-    FakeWeb.register_uri :get, 'http://foo.com/', status: 200, body: """
+    stub_request(:get, 'http://foo.com/').to_return(status: 200, body: """
       <body><link rel='canonical' href=' https://foo.com/home '></body>
-    """
+    """)
 
     follower  = Unwind::RedirectFollower.resolve('http://foo.com/')
 
@@ -133,7 +134,7 @@ describe Unwind::RedirectFollower do
 
   it 'should handle a meta-refresh without spacing between time and url' do
     body = "<meta http-equiv=\"refresh\" content=\"0;url=http://www.example.com/\">"
-    FakeWeb.register_uri :get, 'http://foo.com', status: 200, body: body
+    stub_request(:get, 'http://foo.com').to_return(status: 200, body: body)
     follower = Unwind::RedirectFollower.resolve('http://foo.com')
     assert follower.redirected?
     assert_equal "http://www.example.com/", follower.final_url
@@ -141,7 +142,7 @@ describe Unwind::RedirectFollower do
 
   it 'should handle a meta-refresh with url wrapped in single quotes' do
     body = "<meta http-equiv=\"refresh\" content=\"0;url='http://www.example.com/'\">"
-    FakeWeb.register_uri :get, 'http://foo.com', status: 200, body: body
+    stub_request(:get, 'http://foo.com').to_return(status: 200, body: body)
     follower = Unwind::RedirectFollower.resolve('http://foo.com')
     assert follower.redirected?
     assert_equal "http://www.example.com/", follower.final_url
@@ -149,8 +150,8 @@ describe Unwind::RedirectFollower do
 
   it 'should handle a meta-refresh with relative url' do
     body = '<meta http-equiv="refresh" content="0; url=/relative">'
-    FakeWeb.register_uri :get, 'http://foo.com', status: 200, body: body
-    FakeWeb.register_uri :get, 'http://foo.com/relative', status: 200, body: 'ok'
+    stub_request(:get, 'http://foo.com').to_return(status: 200, body: body)
+    stub_request(:get, 'http://foo.com/relative').to_return(status: 200, body: 'ok')
 
     follower = Unwind::RedirectFollower.resolve('http://foo.com')
     assert follower.redirected?
@@ -159,8 +160,8 @@ describe Unwind::RedirectFollower do
 
   it 'should handle URLs with spaces' do
     body = '<meta http-equiv="refresh" content="0; url=/relative with spaces">'
-    FakeWeb.register_uri :get, 'http://foo.com/path%20with%20spaces', status: 200, body: body
-    FakeWeb.register_uri :get, 'http://foo.com/relative%20with%20spaces', status: 200, body: 'ok'
+    stub_request(:get, 'http://foo.com/path%20with%20spaces').to_return(status: 200, body: body)
+    stub_request(:get, 'http://foo.com/relative%20with%20spaces').to_return(status: 200, body: 'ok')
 
     follower = Unwind::RedirectFollower.resolve('http://foo.com/path with spaces')
     assert follower.redirected?
@@ -169,31 +170,44 @@ describe Unwind::RedirectFollower do
 
   describe 'handling 404s' do
     it "should set not_found?" do
-      FakeWeb.register_uri :get, 'http://nope.com', status: 404
+      stub_request(:get, 'http://nope.com').to_return(status: 404)
       follower = Unwind::RedirectFollower.resolve('http://nope.com/')
       assert follower.not_found?
     end
   end
+  
+  # unseemly hack to emulate Fakeweb's "last_request" functionality.
+  last_request = nil
+  WebMock.after_request do |req, response|
+    request = {
+      uri: req.uri.to_s,
+      method: req.method.to_s.upcase,
+      headers: req.headers,
+      body: req.body,
+      request: req
+    }
+    last_request = request
+  end
 
   describe 'preserving cookies' do
     it "should preserve cookies to redirected domains" do
-      FakeWeb.register_uri :get, 'http://foo.com', status: 302,
+      stub_request(:get, 'http://foo.com').to_return(status: 302, headers: {
         "set-cookie" => "sid=3EBE6B02-E226-017F-541D-B1D03209F38B; Path=/; Domain=.foo.com",
-        "location" => "http://bar.com"
+        "location" => "http://bar.com" })
 
-      FakeWeb.register_uri :get, 'http://bar.com', status: 302,
-        "location" => "http://foo.com/content"
+      stub_request(:get, 'http://bar.com').to_return(status: 302,
+        headers: {"location" => "http://foo.com/content"})
 
-      FakeWeb.register_uri :get, 'http://foo.com/content', status: 200
+      stub_request(:get, 'http://foo.com/content').to_return(status: 200)
 
       follower = Unwind::RedirectFollower.resolve('http://foo.com/')
 
-      assert FakeWeb.last_request["cookie"].match(/sid=3EBE6B02\-E226\-017F\-541D\-B1D03209F38B/)
+      assert_equal(last_request[:headers]["Cookie"], "sid=3EBE6B02-E226-017F-541D-B1D03209F38B")
     end
   end
 
   it "should raise exception on timeout" do
-    FakeWeb.register_uri :get, "http://slow.com", :exception => Timeout::Error
+    stub_request(:get, "http://slow.com").to_return(:exception => Timeout::Error)
     lambda { Unwind::RedirectFollower.resolve('http://slow.com/') }.must_raise Unwind::TimeoutError
   end
 
