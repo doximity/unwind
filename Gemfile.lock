@@ -1,0 +1,53 @@
+PATH
+  remote: .
+  specs:
+    unwind (0.11.2)
+      addressable (~> 2.5)
+      faraday (~> 0.15)
+      faraday-cookie_jar (~> 0.0.6)
+      nokogiri
+
+GEM
+  remote: http://rubygems.org/
+  specs:
+    addressable (2.7.0)
+      public_suffix (>= 2.0.2, < 5.0)
+    crack (0.4.4)
+    domain_name (0.5.20190701)
+      unf (>= 0.0.5, < 1.0.0)
+    faraday (0.17.3)
+      multipart-post (>= 1.2, < 3)
+    faraday-cookie_jar (0.0.7)
+      faraday (>= 0.8.0)
+      http-cookie (~> 1.0.0)
+    hashdiff (1.0.1)
+    http-cookie (1.0.3)
+      domain_name (~> 0.5)
+    mini_portile2 (2.4.0)
+    minitest (5.14.2)
+    multipart-post (2.1.1)
+    nokogiri (1.10.10)
+      mini_portile2 (~> 2.4.0)
+    public_suffix (4.0.6)
+    rake (13.0.1)
+    unf (0.1.4)
+      unf_ext
+    unf_ext (0.0.7.7)
+    vcr (4.0.0)
+    webmock (3.9.5)
+      addressable (>= 2.3.6)
+      crack (>= 0.3.2)
+      hashdiff (>= 0.4.0, < 2.0.0)
+
+PLATFORMS
+  ruby
+
+DEPENDENCIES
+  minitest
+  rake
+  unwind!
+  vcr (~> 4.0)
+  webmock (~> 3.4)
+
+BUNDLED WITH
+   2.1.4
